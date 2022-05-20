@@ -1,5 +1,6 @@
 package com.imherrera.videoplayer
 
+import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -8,10 +9,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -29,7 +29,7 @@ fun VideoPlayerControl(
     background: Color = Color.Black.copy(0.30f),
     contentColor: Color = Color.White,
     progressLineColor: Color = MaterialTheme.colors.primaryVariant,
-    onOptionsClick: (() -> Unit)? = null,
+    onOptionsContent: (@Composable () -> Unit)? = null,
 ) {
     CompositionLocalProvider(LocalContentColor provides contentColor) {
         Column(
@@ -40,11 +40,21 @@ fun VideoPlayerControl(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
+            val onBackPressDispatcher =
+                LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
+
             ControlHeader(
                 modifier = Modifier.fillMaxWidth(),
                 title = title,
                 subtitle = subtitle,
-                onOptionsClick = onOptionsClick
+                onBackClick = {
+                    if (state.isFullscreen.value) {
+                        state.control.setFullscreen(false)
+                    } else {
+                        onBackPressDispatcher?.onBackPressed()
+                    }
+                },
+                onOptionsContent = onOptionsContent
             )
             PlaybackControl(
                 isPlaying = state.isPlaying.value,
@@ -55,10 +65,14 @@ fun VideoPlayerControl(
                 progressLineColor = progressLineColor,
                 isFullScreen = state.isFullscreen.value,
                 videoDurationMs = state.videoDurationMs.value,
-                videoPositionMs = state.videoPositionMs.value
-            ) {
-                state.control.setFullscreen(!state.isFullscreen.value)
-            }
+                videoPositionMs = state.videoPositionMs.value,
+                onProgressChange = { progress ->
+                    state.player.seekTo((state.videoDurationMs.value * progress).toLong())
+                },
+                onFullScreenToggle = {
+                    state.control.setFullscreen(!state.isFullscreen.value)
+                }
+            )
         }
     }
 }
@@ -68,13 +82,18 @@ private fun ControlHeader(
     modifier: Modifier = Modifier,
     title: String,
     subtitle: String?,
-    onOptionsClick: (() -> Unit)?,
+    onBackClick: (() -> Unit)?,
+    onOptionsContent: (@Composable () -> Unit)? = null,
 ) {
     Row(
         modifier = modifier,
-        horizontalArrangement = Arrangement.SpaceBetween,
+        horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
+        AdaptiveIconButton(onClick = { onBackClick?.invoke() }) {
+            Icon(imageVector = Icons.Default.ArrowBack, contentDescription = null)
+        }
+
         Column(verticalArrangement = Arrangement.SpaceBetween) {
             Text(
                 text = title,
@@ -93,17 +112,7 @@ private fun ControlHeader(
                 )
             }
         }
-        if (onOptionsClick != null) {
-            AdaptiveIconButton(
-                modifier = Modifier.size(SmallIconButtonSize),
-                onClick = onOptionsClick
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.MoreVert,
-                    contentDescription = null
-                )
-            }
-        }
+        onOptionsContent?.invoke()
     }
 }
 
@@ -161,14 +170,25 @@ private fun TimelineControl(
     isFullScreen: Boolean,
     videoDurationMs: Long,
     videoPositionMs: Long,
+    onProgressChange: (Float) -> Unit,
     onFullScreenToggle: () -> Unit,
 ) {
+
+
+    var progress by remember(videoPositionMs.milliseconds.inWholeSeconds) {
+        mutableStateOf(
+            if (videoDurationMs == 0L) {
+                0F
+            } else {
+                1.0f - ((videoDurationMs - videoPositionMs) / videoDurationMs.toFloat())
+            }
+        )
+    }
+
     val timestamp = remember(videoDurationMs, videoPositionMs.milliseconds.inWholeSeconds) {
-        prettyVideoTimestamp(videoDurationMs.milliseconds, videoPositionMs.milliseconds)
+        prettyVideoTimestamp(videoPositionMs.milliseconds, videoDurationMs.milliseconds)
     }
-    val progress = remember(videoPositionMs) {
-        1.0f - ((videoDurationMs - videoPositionMs) / videoDurationMs.toFloat())
-    }
+
     Column(modifier = modifier) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -188,14 +208,22 @@ private fun TimelineControl(
             }
         }
         Spacer(modifier = Modifier.height(8.dp))
-        LinearProgressIndicator(
+
+        Slider(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(2.dp),
-            progress = progress,
-            color = progressLineColor,
-            backgroundColor = Color.LightGray
-        )
+            colors = SliderDefaults.colors(
+                thumbColor = progressLineColor,
+                activeTickColor = progressLineColor,
+                inactiveTickColor = Color.LightGray
+            ),
+            value = progress,
+            onValueChange = {
+                progress = it
+                onProgressChange(it)
+            })
+
     }
 }
 
@@ -204,7 +232,7 @@ private fun TimelineControl(
  * Allow the button to be any size instead of constraining it to 48dp
  * **/
 @Composable
-private fun AdaptiveIconButton(
+fun AdaptiveIconButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,

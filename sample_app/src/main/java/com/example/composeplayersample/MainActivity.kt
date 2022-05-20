@@ -5,22 +5,28 @@ import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.Icon
+import androidx.compose.material.Surface
+import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.example.composeplayersample.ui.theme.ComposePlayerSampleTheme
 import com.google.android.exoplayer2.MediaItem
+import com.imherrera.videoplayer.AdaptiveIconButton
 import com.imherrera.videoplayer.VideoPlayer
-import com.imherrera.videoplayer.rememberVideoPlayerState
 import com.imherrera.videoplayer.VideoPlayerControl
+import com.imherrera.videoplayer.rememberVideoPlayerState
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -29,26 +35,77 @@ class MainActivity : ComponentActivity() {
             ComposePlayerSampleTheme {
                 val playerState = rememberVideoPlayerState()
 
-                VideoPlayer(
-                    modifier = Modifier
-                        .background(Color.Black)
-                        .adaptiveSize(playerState.isFullscreen.value, LocalView.current),
-                    playerState = playerState,
-                ) {
-                    /**
-                     * Use default control or implement your own
-                     * */
-                    VideoPlayerControl(
-                        state = playerState,
-                        title = "Elephant Dream",
-                        subtitle = "By Blender Foundation",
-                    )
-                }
+                Column(modifier = Modifier.fillMaxSize()) {
+                    VideoPlayer(
+                        modifier = Modifier
+                            .background(Color.Black)
+                            .fillMaxWidth()
+                            .adaptiveSize(playerState.isFullscreen.value, LocalView.current),
+                        playerState = playerState,
+                    ) {
+                        var isShowVideoQuality by remember {
+                            mutableStateOf(false)
+                        }
 
-                LaunchedEffect(Unit) {
-                    playerState.player.setMediaItem(MediaItem.fromUri("http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4"))
-                    playerState.player.prepare()
-                    playerState.player.playWhenReady = true
+                        if (isShowVideoQuality) {
+                            Box(
+                                modifier = Modifier
+                                    .height(250.dp)
+                                    .fillMaxWidth(0.25F)
+                            ) {
+                                Popup(
+                                    alignment = Alignment.CenterEnd
+                                ) {
+                                    Surface(
+                                        modifier = Modifier.fillMaxSize(),
+                                        color = Color.White
+                                    ) {
+                                        Column(modifier = Modifier.fillMaxHeight()) {
+                                            repeat(3) {
+                                                Text(text = "$it - 720P")
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                        }
+
+
+                        /**
+                         * Use default control or implement your own
+                         * */
+                        VideoPlayerControl(
+                            state = playerState,
+                            title = "Elephant Dream",
+                            subtitle = "By Blender Foundation",
+                            onOptionsContent = {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceEvenly
+                                ) {
+                                    AdaptiveIconButton(onClick = {
+                                        isShowVideoQuality = !isShowVideoQuality
+                                    }) {
+                                        Icon(
+                                            imageVector = Icons.Default.MoreVert,
+                                            contentDescription = null
+                                        )
+                                    }
+                                }
+                            }
+                        )
+                    }
+
+                    LaunchedEffect(Unit) {
+                        playerState.player.setMediaItem(MediaItem.fromUri("http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4"))
+                        playerState.player.prepare()
+                        playerState.player.playWhenReady = true
+                    }
+
+                    repeat(10){
+                        Text(text = "Hello", color = Color.Gray)
+                    }
                 }
             }
         }

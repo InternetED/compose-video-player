@@ -8,11 +8,11 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
@@ -45,24 +45,26 @@ private fun Modifier.adaptiveLayout(
     }
 }
 
-private fun Modifier.defaultPlayerTapGestures(playerState: VideoPlayerState) = pointerInput(Unit) {
-    detectTapGestures(
-        onDoubleTap = {
-            if (playerState.videoResizeMode.value == ResizeMode.Zoom) {
-                playerState.control.setVideoResize(ResizeMode.Fit)
-            } else {
-                playerState.control.setVideoResize(ResizeMode.Zoom)
+private fun Modifier.defaultPlayerTapGestures(playerState: VideoPlayerState, centerX: Float) =
+    pointerInput(centerX) {
+
+        detectTapGestures(
+            onDoubleTap = {
+                if (it.x > centerX) {
+                    playerState.control.forward()
+                } else {
+                    playerState.control.rewind()
+                }
+            },
+            onTap = {
+                if (playerState.isControlUiVisible.value) {
+                    playerState.hideControlUi()
+                } else {
+                    playerState.showControlUi()
+                }
             }
-        },
-        onTap = {
-            if (playerState.isControlUiVisible.value) {
-                playerState.hideControlUi()
-            } else {
-                playerState.showControlUi()
-            }
-        }
-    )
-}
+        )
+    }
 
 @Composable
 private fun VideoPlayer(
@@ -70,7 +72,17 @@ private fun VideoPlayer(
     playerState: VideoPlayerState,
     controller: @Composable () -> Unit
 ) {
-    Box(modifier = modifier.defaultPlayerTapGestures(playerState)) {
+    var centerX by remember {
+        mutableStateOf(0F)
+    }
+
+    Box(
+        modifier = modifier
+            .onSizeChanged {
+                centerX = it.width / 2F
+            }
+            .defaultPlayerTapGestures(playerState, centerX)
+    ) {
         AndroidView(
             modifier = Modifier.adaptiveLayout(
                 aspectRatio = playerState.videoSize.value.aspectRatio(),

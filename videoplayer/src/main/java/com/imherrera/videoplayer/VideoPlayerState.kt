@@ -32,7 +32,7 @@ fun rememberVideoPlayerState(
     coroutineScope: CoroutineScope = rememberCoroutineScope(),
     context: Context = LocalContext.current,
     config: ExoPlayer.Builder.() -> Unit = {
-        setSeekForwardIncrementMs(10 * 1000)
+        setSeekBackIncrementMs(10 * 1000)
         setSeekForwardIncrementMs(10 * 1000)
     }
 ): VideoPlayerState = remember {
