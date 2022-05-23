@@ -6,8 +6,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.DropdownMenu
+import androidx.compose.material.DropdownMenuItem
 import androidx.compose.material.Icon
-import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
@@ -17,7 +18,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Popup
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -29,6 +29,7 @@ import com.imherrera.videoplayer.VideoPlayerControl
 import com.imherrera.videoplayer.rememberVideoPlayerState
 
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -43,34 +44,6 @@ class MainActivity : ComponentActivity() {
                             .adaptiveSize(playerState.isFullscreen.value, LocalView.current),
                         playerState = playerState,
                     ) {
-                        var isShowVideoQuality by remember {
-                            mutableStateOf(false)
-                        }
-
-                        if (isShowVideoQuality) {
-                            Box(
-                                modifier = Modifier
-                                    .height(250.dp)
-                                    .fillMaxWidth(0.25F)
-                            ) {
-                                Popup(
-                                    alignment = Alignment.CenterEnd
-                                ) {
-                                    Surface(
-                                        modifier = Modifier.fillMaxSize(),
-                                        color = Color.White
-                                    ) {
-                                        Column(modifier = Modifier.fillMaxHeight()) {
-                                            repeat(3) {
-                                                Text(text = "$it - 720P")
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                        }
-
 
                         /**
                          * Use default control or implement your own
@@ -82,17 +55,45 @@ class MainActivity : ComponentActivity() {
                             onOptionsContent = {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceEvenly
+                                    horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     AdaptiveIconButton(onClick = {
-                                        isShowVideoQuality = !isShowVideoQuality
+
                                     }) {
                                         Icon(
                                             imageVector = Icons.Default.MoreVert,
                                             contentDescription = null
                                         )
                                     }
+                                    var isShowVideoQuality by remember {
+                                        mutableStateOf(false)
+                                    }
+                                    LaunchedEffect(key1 = isShowVideoQuality, block = {
+                                        playerState.extendHiddenControlWindowTime()
+                                    })
+
+                                    AdaptiveIconButton(onClick = {
+                                        isShowVideoQuality = true
+                                    }) {
+                                        Icon(
+                                            imageVector = Icons.Default.MoreVert,
+                                            contentDescription = null
+                                        )
+                                    }
+                                    DropdownMenu(
+                                        expanded = isShowVideoQuality,
+                                        onDismissRequest = {
+                                            isShowVideoQuality = false
+                                        }) {
+                                        repeat(10) {
+                                            DropdownMenuItem(onClick = {
+                                            }) {
+                                                Text(text = "Hello -$it")
+                                            }
+                                        }
+                                    }
                                 }
+
                             }
                         )
                     }
@@ -103,7 +104,7 @@ class MainActivity : ComponentActivity() {
                         playerState.player.playWhenReady = true
                     }
 
-                    repeat(10){
+                    repeat(10) {
                         Text(text = "Hello", color = Color.Gray)
                     }
                 }

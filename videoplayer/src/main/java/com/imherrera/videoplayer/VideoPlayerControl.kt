@@ -1,5 +1,6 @@
 package com.imherrera.videoplayer
 
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
@@ -43,16 +44,16 @@ fun VideoPlayerControl(
             val onBackPressDispatcher =
                 LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
 
+            BackHandler(enabled = state.isFullscreen.value) {
+                state.control.setFullscreen(false)
+            }
+
             ControlHeader(
                 modifier = Modifier.fillMaxWidth(),
                 title = title,
                 subtitle = subtitle,
                 onBackClick = {
-                    if (state.isFullscreen.value) {
-                        state.control.setFullscreen(false)
-                    } else {
-                        onBackPressDispatcher?.onBackPressed()
-                    }
+                    onBackPressDispatcher?.onBackPressed()
                 },
                 onOptionsContent = onOptionsContent
             )
@@ -87,7 +88,7 @@ private fun ControlHeader(
 ) {
     Row(
         modifier = modifier,
-        horizontalArrangement = Arrangement.SpaceEvenly,
+        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         AdaptiveIconButton(onClick = { onBackClick?.invoke() }) {

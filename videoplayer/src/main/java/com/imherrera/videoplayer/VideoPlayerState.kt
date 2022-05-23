@@ -61,7 +61,6 @@ class VideoPlayerStateImpl(
     override val isPlaying = mutableStateOf(player.isPlaying)
     override val playerState = mutableStateOf(player.playbackState)
 
-    override val isOptionsUiVisible = mutableStateOf(false)
     override val isControlUiVisible = mutableStateOf(false)
     override val control = object : VideoPlayerControl {
         override fun play() {
@@ -95,13 +94,6 @@ class VideoPlayerStateImpl(
         }
     }
 
-    override fun hideOptionsUi() {
-        isOptionsUiVisible.value = true
-    }
-
-    override fun showOptionsUi() {
-        isOptionsUiVisible.value = false
-    }
 
     private var pollVideoPositionJob: Job? = null
     private var controlUiLastInteractionMs = 0L
@@ -136,6 +128,10 @@ class VideoPlayerStateImpl(
         }
     }
 
+    override fun extendHiddenControlWindowTime() {
+        controlUiLastInteractionMs = 0L
+    }
+
     override fun onIsPlayingChanged(isPlaying: Boolean) {
         this.isPlaying.value = isPlaying
     }
@@ -163,15 +159,13 @@ interface VideoPlayerState {
     val isPlaying: State<Boolean>
     val playerState: State<Int>
 
-    val isOptionsUiVisible: State<Boolean>
     val isControlUiVisible: State<Boolean>
     val control: VideoPlayerControl
 
-    fun hideOptionsUi()
-    fun showOptionsUi()
-
     fun hideControlUi()
     fun showControlUi()
+
+    fun extendHiddenControlWindowTime()
 }
 
 interface VideoPlayerControl {
