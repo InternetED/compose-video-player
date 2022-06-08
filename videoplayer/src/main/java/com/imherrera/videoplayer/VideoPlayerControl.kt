@@ -44,10 +44,6 @@ fun VideoPlayerControl(
             val onBackPressDispatcher =
                 LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
 
-            BackHandler(enabled = state.isFullscreen.value) {
-                state.control.setFullscreen(false)
-            }
-
             ControlHeader(
                 modifier = Modifier.fillMaxWidth(),
                 title = title,

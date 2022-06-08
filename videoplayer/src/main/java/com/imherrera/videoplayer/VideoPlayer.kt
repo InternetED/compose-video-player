@@ -3,6 +3,7 @@ package com.imherrera.videoplayer
 import android.os.Build
 import android.view.SurfaceView
 import android.view.ViewGroup
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -83,6 +84,11 @@ private fun VideoPlayer(
             }
             .defaultPlayerTapGestures(playerState, centerX)
     ) {
+
+        BackHandler(enabled = playerState.isFullscreen.value) {
+            playerState.control.setFullscreen(false)
+        }
+
         AndroidView(
             modifier = Modifier.adaptiveLayout(
                 aspectRatio = playerState.videoSize.value.aspectRatio(),

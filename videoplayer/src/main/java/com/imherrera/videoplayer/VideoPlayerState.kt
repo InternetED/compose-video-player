@@ -27,6 +27,7 @@ import kotlinx.coroutines.launch
  * */
 @Composable
 fun rememberVideoPlayerState(
+    key : Any? = null,
     hideControllerAfterMs: Long? = 3000,
     videoPositionPollInterval: Long = 500,
     coroutineScope: CoroutineScope = rememberCoroutineScope(),
@@ -35,7 +36,7 @@ fun rememberVideoPlayerState(
         setSeekBackIncrementMs(10 * 1000)
         setSeekForwardIncrementMs(10 * 1000)
     }
-): VideoPlayerState = remember {
+): VideoPlayerState = remember(key) {
     VideoPlayerStateImpl(
         player = ExoPlayer.Builder(context).apply(config).build(),
         coroutineScope = coroutineScope,
