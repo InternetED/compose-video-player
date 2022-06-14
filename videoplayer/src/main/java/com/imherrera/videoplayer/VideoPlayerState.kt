@@ -3,6 +3,7 @@ package com.imherrera.videoplayer
 import android.content.Context
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
+import com.google.android.exoplayer2.C
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.Player
 import com.google.android.exoplayer2.video.VideoSize
@@ -84,6 +85,12 @@ class VideoPlayerStateImpl(
     override val control = object : VideoPlayerControl {
         override fun play() {
             controlUiLastInteractionMs = 0
+            val state = player.playbackState
+            if (state == Player.STATE_IDLE) {
+                player.prepare()
+            } else if (state == Player.STATE_ENDED) {
+                player.seekTo(player.currentMediaItemIndex, C.TIME_UNSET)
+            }
             player.play()
         }
 
