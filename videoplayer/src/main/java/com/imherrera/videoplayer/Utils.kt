@@ -72,6 +72,16 @@ internal inline fun Constraints.resizeForVideo(
  * format "mm:ss / mm:ss"
  * **/
 internal inline fun prettyVideoTimestamp(
+    duration: Duration
+): String = buildString {
+    appendMinutesAndSeconds(duration)
+}
+
+/**
+ * Will return a timestamp denoting the current video [position] and the [duration] in the following
+ * format "mm:ss / mm:ss"
+ * **/
+internal inline fun prettyVideoTimestamp(
     duration: Duration,
     position: Duration
 ): String = buildString {

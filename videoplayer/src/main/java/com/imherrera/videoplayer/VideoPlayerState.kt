@@ -27,7 +27,7 @@ import kotlinx.coroutines.launch
  * */
 @Composable
 fun rememberVideoPlayerState(
-    key : Any? = null,
+    key: Any? = null,
     hideControllerAfterMs: Long? = 3000,
     videoPositionPollInterval: Long = 500,
     coroutineScope: CoroutineScope = rememberCoroutineScope(),
@@ -35,13 +35,24 @@ fun rememberVideoPlayerState(
     config: ExoPlayer.Builder.() -> Unit = {
         setSeekBackIncrementMs(10 * 1000)
         setSeekForwardIncrementMs(10 * 1000)
-    }
+    },
+    onDragVideoScreen: (dragProcess: Float) -> Unit = {},
+    onDragVideoScreenFinish: (endDragProcess: Float) -> Unit = {}
 ): VideoPlayerState = remember(key) {
     VideoPlayerStateImpl(
-        player = ExoPlayer.Builder(context).apply(config).build(),
+        player = ExoPlayer.Builder(context)
+//            .setTrackSelector(DefaultTrackSelector(context))
+//            .setRenderersFactory(DefaultRenderersFactory(context).apply {
+//                setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
+//            })
+//            .setLoadControl(DefaultLoadControl.Builder().build())
+
+            .apply(config).build(),
         coroutineScope = coroutineScope,
         hideControllerAfterMs = hideControllerAfterMs,
-        videoPositionPollInterval = videoPositionPollInterval
+        videoPositionPollInterval = videoPositionPollInterval,
+        onDragVideoScreen = onDragVideoScreen,
+        onDragVideoScreenFinish = onDragVideoScreenFinish
     ).also {
         it.player.addListener(it)
     }
@@ -52,11 +63,18 @@ class VideoPlayerStateImpl(
     private val coroutineScope: CoroutineScope,
     private val hideControllerAfterMs: Long?,
     private val videoPositionPollInterval: Long,
+    private val onDragVideoScreen: (dragProcess: Float) -> Unit = {},
+    private val onDragVideoScreenFinish: (endDragProcess: Float) -> Unit = {}
 ) : VideoPlayerState, Player.Listener {
     override val videoSize = mutableStateOf(player.videoSize)
     override val videoResizeMode = mutableStateOf(ResizeMode.Fit)
     override val videoPositionMs = mutableStateOf(0L)
     override val videoDurationMs = mutableStateOf(0L)
+
+    override val dragVideoScreen: (Float) -> Unit
+        get() = onDragVideoScreen
+    override val dragVideoScreenFinish: (endDragProcess: Float) -> Unit
+        get() = onDragVideoScreenFinish
 
     override val isFullscreen = mutableStateOf(false)
     override val isPlaying = mutableStateOf(player.isPlaying)
@@ -155,6 +173,9 @@ interface VideoPlayerState {
     val videoResizeMode: State<ResizeMode>
     val videoPositionMs: State<Long>
     val videoDurationMs: State<Long>
+
+    val dragVideoScreen: (dragProcess: Float) -> Unit
+    val dragVideoScreenFinish: (endDragProcess: Float) -> Unit
 
     val isFullscreen: State<Boolean>
     val isPlaying: State<Boolean>

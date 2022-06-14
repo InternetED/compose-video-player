@@ -1,6 +1,6 @@
 package com.imherrera.videoplayer
 
-import androidx.activity.compose.BackHandler
+import android.util.Log
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
@@ -21,6 +21,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.imherrera.videoplayer.icons.*
 import kotlin.time.Duration.Companion.milliseconds
+
 
 @Composable
 fun VideoPlayerControl(
@@ -64,6 +65,7 @@ fun VideoPlayerControl(
                 videoDurationMs = state.videoDurationMs.value,
                 videoPositionMs = state.videoPositionMs.value,
                 onProgressChange = { progress ->
+                    state.extendHiddenControlWindowTime()
                     state.player.seekTo((state.videoDurationMs.value * progress).toLong())
                 },
                 onFullScreenToggle = {
@@ -170,45 +172,39 @@ private fun TimelineControl(
     onProgressChange: (Float) -> Unit,
     onFullScreenToggle: () -> Unit,
 ) {
+    var isScrolling by remember {
+        mutableStateOf(false)
+    }
 
+    var progress by remember {
+        mutableStateOf(0F)
+    }
 
-    var progress by remember(videoPositionMs.milliseconds.inWholeSeconds) {
-        mutableStateOf(
-            if (videoDurationMs == 0L) {
+    LaunchedEffect(key1 = videoPositionMs, block = {
+        if (!isScrolling) {
+            progress = if (videoDurationMs == 0L) {
                 0F
             } else {
                 1.0f - ((videoDurationMs - videoPositionMs) / videoDurationMs.toFloat())
             }
-        )
-    }
-
-    val timestamp = remember(videoDurationMs, videoPositionMs.milliseconds.inWholeSeconds) {
-        prettyVideoTimestamp(videoPositionMs.milliseconds, videoDurationMs.milliseconds)
-    }
-
-    Column(modifier = modifier) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(text = timestamp)
-            Spacer(modifier = Modifier.weight(1.0f))
-            AdaptiveIconButton(
-                modifier = Modifier.size(SmallIconButtonSize),
-                onClick = onFullScreenToggle
-            ) {
-                Icon(
-                    imageVector = if (isFullScreen) Icons.Rounded.FullscreenExit else Icons.Rounded.Fullscreen,
-                    contentDescription = null
-                )
-            }
         }
-        Spacer(modifier = Modifier.height(8.dp))
+    })
+
+
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+
+
+        Text(text = prettyVideoTimestamp(videoPositionMs.milliseconds))
+
+        Spacer(modifier = Modifier.height(4.dp))
+
 
         Slider(
             modifier = Modifier
-                .fillMaxWidth()
+                .weight(1F)
                 .height(2.dp),
             colors = SliderDefaults.colors(
                 thumbColor = progressLineColor,
@@ -217,10 +213,27 @@ private fun TimelineControl(
             ),
             value = progress,
             onValueChange = {
+                isScrolling = true
                 progress = it
-                onProgressChange(it)
-            })
+            },
+            onValueChangeFinished = {
+                onProgressChange(progress)
+                isScrolling = false
+            },
+        )
+        Spacer(modifier = Modifier.height(4.dp))
 
+        Text(text = prettyVideoTimestamp(videoDurationMs.milliseconds))
+
+        AdaptiveIconButton(
+            modifier = Modifier.size(SmallIconButtonSize),
+            onClick = onFullScreenToggle
+        ) {
+            Icon(
+                imageVector = if (isFullScreen) Icons.Rounded.FullscreenExit else Icons.Rounded.Fullscreen,
+                contentDescription = null
+            )
+        }
     }
 }
 

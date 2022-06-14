@@ -6,10 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.DropdownMenu
-import androidx.compose.material.DropdownMenuItem
-import androidx.compose.material.Icon
-import androidx.compose.material.Text
+import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.runtime.*
@@ -21,95 +18,190 @@ import androidx.compose.ui.unit.dp
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.lifecycle.ViewTreeLifecycleOwner
 import com.example.composeplayersample.ui.theme.ComposePlayerSampleTheme
 import com.google.android.exoplayer2.MediaItem
+import com.google.android.exoplayer2.ext.okhttp.OkHttpDataSource
+import com.google.android.exoplayer2.source.DefaultMediaSourceFactory
 import com.imherrera.videoplayer.AdaptiveIconButton
 import com.imherrera.videoplayer.VideoPlayer
 import com.imherrera.videoplayer.VideoPlayerControl
 import com.imherrera.videoplayer.rememberVideoPlayerState
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import java.util.*
+
+val LocalActivity = staticCompositionLocalOf<ComponentActivity> { error("") }
 
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+
         setContent {
+
+
             ComposePlayerSampleTheme {
-                val playerState = rememberVideoPlayerState()
 
                 Column(modifier = Modifier.fillMaxSize()) {
-                    VideoPlayer(
-                        modifier = Modifier
-                            .background(Color.Black)
-                            .fillMaxWidth()
-                            .adaptiveSize(playerState.isFullscreen.value, LocalView.current),
-                        playerState = playerState,
+
+
+                    var data by remember {
+                        mutableStateOf("http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4")
+                    }
+
+
+                    CompositionLocalProvider(
+                        LocalActivity provides this@MainActivity,
                     ) {
-
-                        /**
-                         * Use default control or implement your own
-                         * */
-                        VideoPlayerControl(
-                            state = playerState,
-                            title = "Elephant Dream",
-                            subtitle = "By Blender Foundation",
-                            onOptionsContent = {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    AdaptiveIconButton(onClick = {
-
-                                    }) {
-                                        Icon(
-                                            imageVector = Icons.Default.MoreVert,
-                                            contentDescription = null
-                                        )
-                                    }
-                                    var isShowVideoQuality by remember {
-                                        mutableStateOf(false)
-                                    }
-                                    LaunchedEffect(key1 = isShowVideoQuality, block = {
-                                        playerState.extendHiddenControlWindowTime()
-                                    })
-
-                                    AdaptiveIconButton(onClick = {
-                                        isShowVideoQuality = true
-                                    }) {
-                                        Icon(
-                                            imageVector = Icons.Default.MoreVert,
-                                            contentDescription = null
-                                        )
-                                    }
-                                    DropdownMenu(
-                                        expanded = isShowVideoQuality,
-                                        onDismissRequest = {
-                                            isShowVideoQuality = false
-                                        }) {
-                                        repeat(10) {
-                                            DropdownMenuItem(onClick = {
-                                            }) {
-                                                Text(text = "Hello -$it")
-                                            }
-                                        }
-                                    }
-                                }
-
-                            }
-                        )
+                        VideoPlayer(data = data)
                     }
 
-                    LaunchedEffect(Unit) {
-                        playerState.player.setMediaItem(MediaItem.fromUri("http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4"))
-                        playerState.player.prepare()
-                        playerState.player.playWhenReady = true
-                    }
 
-                    repeat(10) {
+
+
+                    TextButton(onClick = {
+                        data =
+                            "https://video-hw.xvideos-cdn.com/videos_new/mp4/3/9/f/xvideos.com_39f4301baa8f337af8599cab46fdb79b-1.mp4?e=1654688717&ri=1024&rs=85&h=38c64b97a7ac80b2d85734161f1c8c8e"
+                    }) {
+                        Text(text = "Hello", color = Color.Gray)
+                    }
+                    TextButton(onClick = {
+                        data =
+                            "https://video-hw.xvideos-cdn.com/videos_new/mp4/c/6/4/xvideos.com_c6499dec6c7eb0b78358595d37cb0e16.mp4?e=1654688799&ri=1024&rs=85&h=b716949352b014f3889e73344b0bb7bb"
+                    }) {
                         Text(text = "Hello", color = Color.Gray)
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun VideoPlayer(data: String) {
+    val playerState = rememberVideoPlayerState(
+        hideControllerAfterMs = 30000,
+        onDragVideoScreen = {
+
+        },
+        onDragVideoScreenFinish = {
+
+        }
+    )
+
+    VideoPlayer(
+        modifier = Modifier
+            .background(Color.Black)
+            .fillMaxWidth()
+            .adaptiveSize(playerState.isFullscreen.value, LocalView.current),
+        playerState = playerState,
+    ) {
+
+        /**
+         * Use default control or implement your own
+         * */
+        VideoPlayerControl(
+            state = playerState,
+            title = "Elephant Dream",
+            subtitle = "By Blender Foundation",
+            onOptionsContent = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    AdaptiveIconButton(onClick = {
+
+                    }) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = null
+                        )
+                    }
+                    var isShowVideoQuality by remember {
+                        mutableStateOf(false)
+                    }
+                    LaunchedEffect(key1 = isShowVideoQuality, block = {
+                        playerState.extendHiddenControlWindowTime()
+                    })
+
+                    AdaptiveIconButton(onClick = {
+                        isShowVideoQuality = true
+                    }) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = null
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = isShowVideoQuality,
+                        onDismissRequest = {
+                            isShowVideoQuality = false
+                        }) {
+                        repeat(10) {
+                            DropdownMenuItem(onClick = {
+                            }) {
+                                Text(text = "Hello -$it")
+                            }
+                        }
+                    }
+                }
+
+            }
+        )
+
+
+    }
+
+
+    val dataSourceFactory = remember {
+        OkHttpDataSource.Factory(
+            object : okhttp3.Call.Factory {
+                val okHttpClient: OkHttpClient = OkHttpClient.Builder()
+                    .build()
+
+                override fun newCall(request: Request): okhttp3.Call {
+                    return okHttpClient.newCall(request)
+                }
+            }
+        )
+
+    }
+    val defaultMediaSourceFactory = remember {
+        DefaultMediaSourceFactory(dataSourceFactory)
+    }
+
+    LaunchedEffect(data) {
+        playerState.player.stop()
+//        playerState.player.setMediaItem(MediaItem.fromUri("http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4"))
+//        playerState.player.setMediaItem(MediaItem.fromUri(data))
+//        MediaItem.Builder()
+//            .setUri(data)
+//            .setDrmConfiguration(MediaItem.DrmConfiguration.Builder(UUID.randomUUID())
+//                .forceSessionsForAudioAndVideoTracks(true)
+//                .build())
+
+
+        playerState.player.setMediaSource(
+            defaultMediaSourceFactory.createMediaSource(
+                MediaItem.Builder()
+                    .setUri(data)
+//                    .setDrmConfiguration(
+//                        MediaItem.DrmConfiguration.Builder(UUID.fromString("edef8ba9-79d6-4ace-a3c8-27dcd51d21ed"))
+//                            .setLicenseUri("https://proxy.uat.widevine.com/proxy?provider=widevine_test")
+//                            .setMultiSession(false)
+//                            .setForceDefaultLicenseUri(false)
+//                            .setLicenseRequestHeaders(mapOf())
+////                            .forceSessionsForAudioAndVideoTracks(false)
+//                            .build()
+//                    )
+                    .build()
+//                MediaItem.fromUri(data)
+            )
+        )
+        playerState.player.prepare()
+        playerState.player.playWhenReady = true
     }
 }
 
