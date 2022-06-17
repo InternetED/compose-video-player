@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
@@ -18,7 +19,6 @@ import androidx.compose.ui.unit.dp
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import androidx.lifecycle.ViewTreeLifecycleOwner
 import com.example.composeplayersample.ui.theme.ComposePlayerSampleTheme
 import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.ext.okhttp.OkHttpDataSource
@@ -29,7 +29,6 @@ import com.imherrera.videoplayer.VideoPlayerControl
 import com.imherrera.videoplayer.rememberVideoPlayerState
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import java.util.*
 
 val LocalActivity = staticCompositionLocalOf<ComponentActivity> { error("") }
 
@@ -83,12 +82,6 @@ class MainActivity : ComponentActivity() {
 private fun VideoPlayer(data: String) {
     val playerState = rememberVideoPlayerState(
         hideControllerAfterMs = 30000,
-        onDragVideoScreen = {
-
-        },
-        onDragVideoScreenFinish = {
-
-        }
     )
 
     VideoPlayer(
@@ -148,6 +141,9 @@ private fun VideoPlayer(data: String) {
                     }
                 }
 
+            },
+            onPreviewOnScrollProgressContent = {
+                Image(imageVector = Icons.Default.MoreVert, contentDescription = "")
             }
         )
 

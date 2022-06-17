@@ -3,9 +3,8 @@ package com.imherrera.videoplayer
 import android.content.Context
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
-import com.google.android.exoplayer2.C
-import com.google.android.exoplayer2.ExoPlayer
-import com.google.android.exoplayer2.Player
+import com.google.android.exoplayer2.*
+import com.google.android.exoplayer2.trackselection.DefaultTrackSelector
 import com.google.android.exoplayer2.video.VideoSize
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -37,23 +36,18 @@ fun rememberVideoPlayerState(
         setSeekBackIncrementMs(10 * 1000)
         setSeekForwardIncrementMs(10 * 1000)
     },
-    onDragVideoScreen: (dragProcess: Float) -> Unit = {},
-    onDragVideoScreenFinish: (endDragProcess: Float) -> Unit = {}
 ): VideoPlayerState = remember(key) {
     VideoPlayerStateImpl(
         player = ExoPlayer.Builder(context)
-//            .setTrackSelector(DefaultTrackSelector(context))
-//            .setRenderersFactory(DefaultRenderersFactory(context).apply {
-//                setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
-//            })
-//            .setLoadControl(DefaultLoadControl.Builder().build())
-
+            .setTrackSelector(DefaultTrackSelector(context))
+            .setRenderersFactory(DefaultRenderersFactory(context).apply {
+                setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
+            })
+            .setLoadControl(DefaultLoadControl.Builder().build())
             .apply(config).build(),
         coroutineScope = coroutineScope,
         hideControllerAfterMs = hideControllerAfterMs,
         videoPositionPollInterval = videoPositionPollInterval,
-        onDragVideoScreen = onDragVideoScreen,
-        onDragVideoScreenFinish = onDragVideoScreenFinish
     ).also {
         it.player.addListener(it)
     }
@@ -64,18 +58,32 @@ class VideoPlayerStateImpl(
     private val coroutineScope: CoroutineScope,
     private val hideControllerAfterMs: Long?,
     private val videoPositionPollInterval: Long,
-    private val onDragVideoScreen: (dragProcess: Float) -> Unit = {},
-    private val onDragVideoScreenFinish: (endDragProcess: Float) -> Unit = {}
 ) : VideoPlayerState, Player.Listener {
     override val videoSize = mutableStateOf(player.videoSize)
     override val videoResizeMode = mutableStateOf(ResizeMode.Fit)
     override val videoPositionMs = mutableStateOf(0L)
     override val videoDurationMs = mutableStateOf(0L)
+    override val videoProgressScrolling = mutableStateOf(false)
+    override val videoProgress = mutableStateOf(0F)
 
     override val dragVideoScreen: (Float) -> Unit
-        get() = onDragVideoScreen
+        get() = {
+            videoProgressScrolling.value = true
+            if (!isControlUiVisible.value) {
+                showControlUi()
+            }
+            this.videoProgress.value = it
+            extendHiddenControlWindowTime()
+        }
     override val dragVideoScreenFinish: (endDragProcess: Float) -> Unit
-        get() = onDragVideoScreenFinish
+        get() = {
+            videoProgressScrolling.value = false
+
+            player.seekTo((player.duration * videoProgress.value).toLong())
+            if (player.playbackState == Player.STATE_IDLE) {
+                player.prepare()
+            }
+        }
 
     override val isFullscreen = mutableStateOf(false)
     override val isPlaying = mutableStateOf(player.isPlaying)
@@ -180,6 +188,9 @@ interface VideoPlayerState {
     val videoResizeMode: State<ResizeMode>
     val videoPositionMs: State<Long>
     val videoDurationMs: State<Long>
+
+    val videoProgressScrolling: State<Boolean>
+    val videoProgress: State<Float>
 
     val dragVideoScreen: (dragProcess: Float) -> Unit
     val dragVideoScreenFinish: (endDragProcess: Float) -> Unit

@@ -1,6 +1,5 @@
 package com.imherrera.videoplayer
 
-import android.util.Log
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
@@ -17,8 +16,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.boundsInParent
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import com.imherrera.videoplayer.icons.*
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -32,47 +37,95 @@ fun VideoPlayerControl(
     contentColor: Color = Color.White,
     progressLineColor: Color = MaterialTheme.colors.primaryVariant,
     onOptionsContent: (@Composable () -> Unit)? = null,
+    previewOnScrollProgressSize: DpSize = DpSize(80.dp, 45.dp),
+    onPreviewOnScrollProgressContent: (@Composable BoxScope.(progress: Float) -> Unit)? = null
 ) {
     CompositionLocalProvider(LocalContentColor provides contentColor) {
-        Column(
+
+
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(background)
                 .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            val onBackPressDispatcher =
-                LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
 
-            ControlHeader(
-                modifier = Modifier.fillMaxWidth(),
-                title = title,
-                subtitle = subtitle,
-                onBackClick = {
-                    onBackPressDispatcher?.onBackPressed()
-                },
-                onOptionsContent = onOptionsContent
-            )
-            PlaybackControl(
-                isPlaying = state.isPlaying.value,
-                control = state.control
-            )
-            TimelineControl(
-                modifier = Modifier.fillMaxWidth(),
-                progressLineColor = progressLineColor,
-                isFullScreen = state.isFullscreen.value,
-                videoDurationMs = state.videoDurationMs.value,
-                videoPositionMs = state.videoPositionMs.value,
-                onProgressChange = { progress ->
-                    state.extendHiddenControlWindowTime()
-                    state.player.seekTo((state.videoDurationMs.value * progress).toLong())
-                },
-                onFullScreenToggle = {
-                    state.control.setFullscreen(!state.isFullscreen.value)
+            ) {
+
+            var target by remember {
+                mutableStateOf<LayoutCoordinates?>(null)
+            }
+
+            if (onPreviewOnScrollProgressContent != null
+                && state.videoProgressScrolling.value
+                && target != null
+            ) {
+                val targetRect = target!!.boundsInParent()
+
+                Box(
+                    modifier = Modifier
+                        .zIndex(1F)
+                        .align(Alignment.BottomStart)
+                        .size(previewOnScrollProgressSize)
+                        .absoluteOffset {
+                            val progress = state.videoProgress.value
+                            val height = previewOnScrollProgressSize.height
+
+                            IntOffset(
+                                x = ((targetRect.width) * progress).toInt(),
+                                y = -(height + 0.dp)
+                                    .toPx()
+                                    .toInt()
+                            )
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    onPreviewOnScrollProgressContent(state.videoProgress.value)
                 }
-            )
+
+            }
+
+
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+
+                val onBackPressDispatcher =
+                    LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
+
+                ControlHeader(
+                    modifier = Modifier.fillMaxWidth(),
+                    title = title,
+                    subtitle = subtitle,
+                    onBackClick = {
+                        onBackPressDispatcher?.onBackPressed()
+                    },
+                    onOptionsContent = onOptionsContent
+                )
+
+                PlaybackControl(
+                    isPlaying = state.isPlaying.value,
+                    control = state.control
+                )
+
+                TimelineControl(
+                    modifier = Modifier.fillMaxWidth(),
+                    progressLineColor = progressLineColor,
+                    isFullScreen = state.isFullscreen.value,
+                    videoPlayerState = state,
+                    videoDurationMs = state.videoDurationMs.value,
+                    videoPositionMs = state.videoPositionMs.value,
+                    onFullScreenToggle = {
+                        state.control.setFullscreen(!state.isFullscreen.value)
+                    },
+                    onGloballyPositioned = {
+                        target = it
+                    }
+                )
+            }
         }
+
     }
 }
 
@@ -167,74 +220,66 @@ private fun TimelineControl(
     modifier: Modifier,
     progressLineColor: Color,
     isFullScreen: Boolean,
+    videoPlayerState: VideoPlayerState,
     videoDurationMs: Long,
     videoPositionMs: Long,
-    onProgressChange: (Float) -> Unit,
     onFullScreenToggle: () -> Unit,
+    onGloballyPositioned: (LayoutCoordinates) -> Unit
 ) {
-    var isScrolling by remember {
-        mutableStateOf(false)
-    }
 
-    var progress by remember {
-        mutableStateOf(0F)
-    }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth(),
+        verticalArrangement = Arrangement.Bottom
+    ) {
+        Row(
+            modifier = modifier,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
 
-    LaunchedEffect(key1 = videoPositionMs, block = {
-        if (!isScrolling) {
-            progress = if (videoDurationMs == 0L) {
-                0F
-            } else {
-                1.0f - ((videoDurationMs - videoPositionMs) / videoDurationMs.toFloat())
+
+            Text(text = prettyVideoTimestamp(videoPositionMs.milliseconds))
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+
+
+
+            Slider(
+                modifier = Modifier
+                    .weight(1F)
+                    .height(2.dp)
+                    .onGloballyPositioned(onGloballyPositioned),
+                colors = SliderDefaults.colors(
+                    thumbColor = progressLineColor,
+                    activeTickColor = progressLineColor,
+                    inactiveTickColor = Color.LightGray
+                ),
+                value = videoPlayerState.videoProgress.value,
+                onValueChange = {
+                    videoPlayerState.dragVideoScreen(it)
+                },
+                onValueChangeFinished = {
+                    videoPlayerState.dragVideoScreenFinish(videoPlayerState.videoProgress.value)
+                },
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(text = prettyVideoTimestamp(videoDurationMs.milliseconds))
+
+            AdaptiveIconButton(
+                modifier = Modifier.size(SmallIconButtonSize),
+                onClick = onFullScreenToggle
+            ) {
+                Icon(
+                    imageVector = if (isFullScreen) Icons.Rounded.FullscreenExit else Icons.Rounded.Fullscreen,
+                    contentDescription = null
+                )
             }
         }
-    })
-
-
-    Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-
-
-        Text(text = prettyVideoTimestamp(videoPositionMs.milliseconds))
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-
-        Slider(
-            modifier = Modifier
-                .weight(1F)
-                .height(2.dp),
-            colors = SliderDefaults.colors(
-                thumbColor = progressLineColor,
-                activeTickColor = progressLineColor,
-                inactiveTickColor = Color.LightGray
-            ),
-            value = progress,
-            onValueChange = {
-                isScrolling = true
-                progress = it
-            },
-            onValueChangeFinished = {
-                onProgressChange(progress)
-                isScrolling = false
-            },
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-
-        Text(text = prettyVideoTimestamp(videoDurationMs.milliseconds))
-
-        AdaptiveIconButton(
-            modifier = Modifier.size(SmallIconButtonSize),
-            onClick = onFullScreenToggle
-        ) {
-            Icon(
-                imageVector = if (isFullScreen) Icons.Rounded.FullscreenExit else Icons.Rounded.Fullscreen,
-                contentDescription = null
-            )
-        }
     }
+
+
 }
 
 
@@ -265,7 +310,7 @@ fun AdaptiveIconButton(
     }
 }
 
-private val BigIconButtonSize = 52.dp
+private val BigIconButtonSize = 48.dp
 private val SmallIconButtonSize = 32.dp
 
 

@@ -1,9 +1,6 @@
 package com.imherrera.videoplayer
 
-import android.graphics.SurfaceTexture
 import android.os.Build
-import android.util.Log
-import android.view.SurfaceHolder
 import android.view.SurfaceView
 import android.view.ViewGroup
 import androidx.activity.compose.BackHandler
@@ -15,12 +12,8 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material.LinearProgressIndicator
 import androidx.compose.runtime.*
-import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
@@ -29,11 +22,6 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
-import com.google.android.exoplayer2.PlaybackException
-import com.google.android.exoplayer2.Player
-import com.google.android.exoplayer2.Player.STATE_READY
-import com.google.android.exoplayer2.util.Util
-import java.util.*
 
 
 @JvmInline
@@ -98,50 +86,39 @@ private fun VideoPlayer(
         mutableStateOf(-1F)
     }
 
-    val minWidth = remember { 0F }
-    var maxWidth by remember { mutableStateOf(0F) }
-
+    var width by remember {
+        mutableStateOf(0F)
+    }
 
     Box(
         modifier = modifier
             .onSizeChanged {
                 centerX = it.width / 2F
-                maxWidth = it.width.toFloat()
+                width = it.width.toFloat()
             }
             .defaultPlayerTapGestures(playerState, centerX)
             .draggable(
-                rememberDraggableState {
+                orientation = Orientation.Horizontal,
+                onDragStarted = {
+                    if (playerState.player.duration > 0L) {
+                        currentProcess =
+                            (playerState.player.currentPosition.toFloat() / playerState.videoDurationMs.value)
+                    }
+                },
+                state = rememberDraggableState {
                     if (currentProcess != -1F) {
-                        val originProcess = currentProcess
-                        val fl = it / (minWidth + maxWidth)
+                        val fl = it / (width)
 
                         currentProcess =
                             (currentProcess + fl).coerceIn(0F..1F)
 
-                        Log.d(
-                            "asdaosdm",
-                            "originProcess:${originProcess} , fl:${fl},currentProcess:${currentProcess}"
-                        )
-
                         playerState.dragVideoScreen(currentProcess)
-                    }
-                },
-                Orientation.Horizontal,
-                onDragStarted = { startedPosition: Offset ->
-                    if (playerState.player.playbackState == STATE_READY
-                        || playerState.player.playbackState == Player.STATE_ENDED
-                    ) {
-
-                        currentProcess =
-                            (playerState.player.currentPosition.toFloat() / playerState.videoDurationMs.value)
                     }
                 },
 
                 onDragStopped = {
                     if (currentProcess != -1F) {
                         playerState.dragVideoScreenFinish(currentProcess)
-
-                        playerState.player.seekTo((playerState.videoDurationMs.value * currentProcess).toLong())
                         currentProcess = -1F
                     }
                 }
@@ -164,12 +141,6 @@ private fun VideoPlayer(
                         ViewGroup.LayoutParams.MATCH_PARENT
                     )
                 }.also {
-                    playerState.player.addListener(object :Player.Listener{
-                        override fun onPlayerError(error: PlaybackException) {
-                            super.onPlayerError(error)
-                            Log.d("asdmaosdm","$error")
-                        }
-                    })
                     playerState.player.setVideoSurfaceView(it)
                 }
             }
@@ -181,17 +152,6 @@ private fun VideoPlayer(
             exit = fadeOut()
         ) {
             controller()
-        }
-
-        if (currentProcess != -1F) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(0.4F)
-                    .align(BiasAlignment(0F, 0.5F))
-            ) {
-
-                LinearProgressIndicator(progress = currentProcess)
-            }
         }
     }
 }
