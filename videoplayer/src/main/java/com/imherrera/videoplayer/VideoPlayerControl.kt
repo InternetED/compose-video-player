@@ -37,7 +37,7 @@ fun VideoPlayerControl(
     contentColor: Color = Color.White,
     progressLineColor: Color = MaterialTheme.colors.primaryVariant,
     onOptionsContent: (@Composable () -> Unit)? = null,
-    previewOnScrollProgressSize: DpSize = DpSize(80.dp, 45.dp),
+    previewOnScrollProgressSize: DpSize = DpSize(140.dp, 67.5.dp),
     onPreviewOnScrollProgressContent: (@Composable BoxScope.(progress: Float) -> Unit)? = null
 ) {
     CompositionLocalProvider(LocalContentColor provides contentColor) {
@@ -68,11 +68,11 @@ fun VideoPlayerControl(
                         .size(previewOnScrollProgressSize)
                         .absoluteOffset {
                             val progress = state.videoProgress.value
-                            val height = previewOnScrollProgressSize.height
+                            val height = 20.dp // ThumbRadius * 2
 
                             IntOffset(
                                 x = ((targetRect.width) * progress).toInt(),
-                                y = -(height + 0.dp)
+                                y = -(height + 16.dp)
                                     .toPx()
                                     .toInt()
                             )
