@@ -152,7 +152,6 @@ private fun ControlHeader(
         Column(verticalArrangement = Arrangement.SpaceBetween) {
             if (isTitleMarquee) {
                 MarqueeText(
-                    modifier = Modifier.weight(1F),
                     text = title,
                     color = LocalContentColor.current,
                     style = MaterialTheme.typography.subtitle1,
