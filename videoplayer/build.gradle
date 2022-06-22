@@ -1,6 +1,7 @@
 plugins {
     id 'com.android.library'
     id 'org.jetbrains.kotlin.android'
+    id 'maven-publish'
 }
 
 android {
@@ -10,6 +11,7 @@ android {
         minSdk 21
         targetSdk 31
 
+        versionName '0.1.5'
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles "consumer-rules.pro"
     }
@@ -33,6 +35,14 @@ android {
     composeOptions {
         kotlinCompilerExtensionVersion compose_version
     }
+
+    publishing {
+        singleVariant("release") {
+            // if you don't want sources/javadoc, remove these lines
+            withSourcesJar()
+            withJavadocJar()
+        }
+    }
 }
 
 dependencies {
@@ -44,4 +54,34 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.4.1")
 
     implementation 'androidx.activity:activity-compose:1.4.0'
+}
+
+task sourceJar(type: Jar) {
+    from android.sourceSets.main.java.srcDirs
+    classifier "sources"
+}
+
+afterEvaluate {
+    publishing {
+//        repositories {
+//            maven {
+//                name = "compose-video-player"
+//                url = uri("https://maven.pkg.github.com/InternetED/compose-video-player")
+//                credentials {
+//                    username = project.findProperty("gpr.user")
+//                    password = project.findProperty("gpr.key")
+//                }
+//            }
+//        }
+        publications {
+            release(MavenPublication) {
+
+                groupId = 'com.github.InternetED'
+                artifactId = 'compose-video-player'
+                version = android.defaultConfig.versionName
+
+                from components.release
+            }
+        }
+    }
 }

@@ -149,7 +149,10 @@ private fun ControlHeader(
             Icon(imageVector = Icons.Default.ArrowBack, contentDescription = null)
         }
 
-        Column(verticalArrangement = Arrangement.SpaceBetween) {
+        Column(
+            modifier = Modifier.weight(1F),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
             if (isTitleMarquee) {
                 MarqueeText(
                     text = title,
