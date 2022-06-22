@@ -33,6 +33,7 @@ fun VideoPlayerControl(
     state: VideoPlayerState,
     title: String,
     subtitle: String? = null,
+    isTitleMarquee: Boolean = false,
     background: Color = Color.Black.copy(0.30f),
     contentColor: Color = Color.White,
     progressLineColor: Color = MaterialTheme.colors.primaryVariant,
@@ -98,6 +99,7 @@ fun VideoPlayerControl(
                     modifier = Modifier.fillMaxWidth(),
                     title = title,
                     subtitle = subtitle,
+                    isTitleMarquee = isTitleMarquee,
                     onBackClick = {
                         onBackPressDispatcher?.onBackPressed()
                     },
@@ -134,6 +136,7 @@ private fun ControlHeader(
     modifier: Modifier = Modifier,
     title: String,
     subtitle: String?,
+    isTitleMarquee: Boolean,
     onBackClick: (() -> Unit)?,
     onOptionsContent: (@Composable () -> Unit)? = null,
 ) {
@@ -147,13 +150,24 @@ private fun ControlHeader(
         }
 
         Column(verticalArrangement = Arrangement.SpaceBetween) {
-            Text(
-                text = title,
-                color = LocalContentColor.current,
-                style = MaterialTheme.typography.subtitle1,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            if (isTitleMarquee) {
+                MarqueeText(
+                    text = title,
+                    color = LocalContentColor.current,
+                    style = MaterialTheme.typography.subtitle1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+            } else {
+                Text(
+                    text = title,
+                    color = LocalContentColor.current,
+                    style = MaterialTheme.typography.subtitle1,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
             if (subtitle != null) {
                 Text(
                     text = subtitle,
@@ -240,7 +254,7 @@ private fun TimelineControl(
 
             Text(text = prettyVideoTimestamp(videoPositionMs.milliseconds))
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
 
 
@@ -263,7 +277,7 @@ private fun TimelineControl(
                     videoPlayerState.dragVideoScreenFinish(videoPlayerState.videoProgress.value)
                 },
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
             Text(text = prettyVideoTimestamp(videoDurationMs.milliseconds))
 

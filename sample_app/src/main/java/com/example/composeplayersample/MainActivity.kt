@@ -97,8 +97,9 @@ private fun VideoPlayer(data: String) {
          * */
         VideoPlayerControl(
             state = playerState,
-            title = "Elephant Dream",
+            title = "Elephant Dreamasjbafhvbaskdnaudyvasdquiehqiuwehiqwe",
             subtitle = "By Blender Foundation",
+            isTitleMarquee = true,
             onOptionsContent = {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
